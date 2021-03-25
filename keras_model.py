@@ -17,6 +17,7 @@ import tensorrt as trt
 import pycuda.driver as cuda
 import pycuda.autoinit
 import common
+from timeit import default_timer as timer
 import cv2
 
 explicit_batch = 1 << (int)(trt.NetworkDefinitionCreationFlag.EXPLICIT_BATCH)
@@ -30,7 +31,7 @@ class ModelData(object):
 
 
 # You can set the logger severity higher to suppress messages (or lower to display more messages).
-TRT_LOGGER = trt.Logger(trt.Logger.INFO)
+TRT_LOGGER = trt.Logger(trt.Logger.ERROR)
 
 
 # Allocate host and device buffers, and create a stream.
@@ -103,11 +104,14 @@ def main():
         with engine.create_execution_context() as context:
             context.set_binding_shape(0, (1, 3, 224, 224))
             # Load a normalized test case into the host input page-locked buffer.
-
-            test_case = load_normalized_test_case('test.jpg', h_input)
-            # Run the engine. The output will be a 1D tensor of length 1000, where each value represents the
-            # probability that the image corresponds to that label
-            do_inference(context, h_input, d_input, h_output, d_output, stream)
+            n = 10000
+            tic = timer()
+            while n:
+                test_case = load_normalized_test_case('test.jpg', h_input)
+                do_inference(context, h_input, d_input, h_output, d_output, stream)
+                n -= 1
+            toc = timer()
+            print(toc - tic)  # 输出的时间，秒为单位
             # We use the highest probability as our prediction. Its index corresponds to the predicted label.
             pred = [np.argmax(h_output)]
             print(pred)
