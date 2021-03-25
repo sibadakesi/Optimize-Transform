@@ -37,7 +37,7 @@ TRT_LOGGER = trt.Logger(trt.Logger.INFO)
 def allocate_buffers(engine):
     # Determine dimensions and create page-locked memory buffers (i.e. won't be swapped to disk) to hold host inputs/outputs.
     h_input = cuda.pagelocked_empty(trt.volume([1, 3, 224, 224]), dtype=trt.nptype(ModelData.DTYPE))
-    h_output = cuda.pagelocked_empty(trt.volume([1, 2]), dtype=trt.nptype(ModelData.DTYPE))
+    h_output = cuda.pagelocked_empty(trt.volume([1, 1000]), dtype=trt.nptype(ModelData.DTYPE))
     # Allocate device memory for inputs and outputs.
     d_input = cuda.mem_alloc(h_input.nbytes)
     d_output = cuda.mem_alloc(h_output.nbytes)
@@ -99,7 +99,9 @@ def main():
         # Allocate buffers and create a CUDA stream.
         h_input, d_input, h_output, d_output, stream = allocate_buffers(engine)
         # Contexts are used to perform inference.
+
         with engine.create_execution_context() as context:
+            context.set_binding_shape(0, (1, 3, 224, 224))
             # Load a normalized test case into the host input page-locked buffer.
 
             test_case = load_normalized_test_case('test.jpg', h_input)
